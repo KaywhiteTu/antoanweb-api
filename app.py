@@ -33,16 +33,17 @@ def report_url():
     save_data("reports.json", reports)
     return jsonify({"success": True})
 
-@app.route('/api/urls', methods=["GET", "POST"])
+@app.route('/api/urls', methods=['GET', 'POST'])
 def manage_urls():
-    if request.method == "GET":
-        return jsonify(load_data("urls.json"))
-    data = request.get_json()
-    urls = load_data("urls.json")
-    urls.append(data)
-    save_data("urls.json", urls)
-    return jsonify({"success": True})
+    if request.method == 'GET':
+        return jsonify(load_data('urls.json'))
+    elif request.method == 'POST':
+        data = request.get_json()
+        urls = load_data('urls.json')
+        urls.append(data)
+        save_data('urls.json', urls)
+        return jsonify({'success': True})
 
-@app.route("/api/reports", methods=["GET"])
+@app.route('/api/reports', methods=['GET'])
 def get_reports():
-    return jsonify(load_data("reports.json"))
+    return jsonify(load_data('reports.json'))
