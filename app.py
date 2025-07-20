@@ -23,7 +23,7 @@ def insert_report(url, user_agent):
     }
 
     headers = SUPABASE_HEADERS.copy()
-    headers["Prefer"] = "return=representation"  # ✅ Quan trọng
+    headers["Prefer"] = "return=representation"  # Bắt Supabase trả phản hồi
 
     response = requests.post(
         f"{SUPABASE_URL}/rest/v1/reports",
@@ -31,9 +31,15 @@ def insert_report(url, user_agent):
         headers=headers
     )
 
-    print("📤 Gửi Supabase:", response.status_code, response.text)
+    # 🔥 In log chi tiết để debug
+    print("📤 Gửi báo cáo lên Supabase:")
+    print("  → URL:", url)
+    print("  → User-Agent:", user_agent)
+    print("  → Status Code:", response.status_code)
+    print("  → Response Body:", response.text)
 
     return response.status_code in [200, 201]
+
 
 # --- Insert URL vào bảng 'malicious_urls' ---
 def insert_url(data):
