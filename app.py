@@ -175,6 +175,8 @@ def manage_urls():
 import requests
 
 # --- AI phân tích URL ---
+HF_TOKEN = "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"
+
 @app.route("/analyze-ai")
 def analyze_ai():
     url = request.args.get("u", "")
@@ -183,6 +185,7 @@ def analyze_ai():
 
     model_url = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
     headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
         "Content-Type": "application/json",
     }
 
@@ -213,7 +216,7 @@ def analyze_ai():
     except Exception as e:
         print("❌ Exception:", str(e))
         return jsonify({"error": "AI model exception", "detail": str(e)}), 500
-    
+
 # --- Lấy tất cả báo cáo ---
 @app.route("/api/reports", methods=["GET"])
 def get_reports():
