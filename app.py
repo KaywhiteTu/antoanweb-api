@@ -66,26 +66,36 @@ def get_reports():
 @app.route("/analyze-ai")
 def analyze_ai():
     url = request.args.get("u", "")
-    if not url: return jsonify({"error": "Thiếu URL"}), 400
+    if not url:
+        return jsonify({"error": "Thiếu URL"}), 400
 
-    ai_response = requests.post(
-        "https://api-inference.huggingface.co/models/mrm8488/bert-tiny-finetuned-phishing",
-        headers={"Content-Type": "application/json"},
-        json={"inputs": url}
-    )
+    # Demo với model dạng classification
+    model_url = "https://api-inference.huggingface.co/models/mrm8488/toxic-comment-model"
 
     try:
-        result = ai_response.json()[0]
-        label = result["label"]
-        score = result["score"]
+        response = requests.post(
+            model_url,
+            headers={
+                "Content-Type": "application/json"
+                # Không dùng Authorization nếu model công khai
+            },
+            json={"inputs": url}
+        )
+
+        if response.status_code != 200:
+            return jsonify({"error": "AI model error"}), 500
+
+        result = response.json()
+        # 🧠 Tùy format model, bạn có thể đổi logic này:
+        prediction = result[0][0]  # ví dụ lấy label đầu tiên
+
         return jsonify({
-            "result": "malicious" if label == "LABEL_1" else "safe",
-            "confidence": round(score, 2),
-            "raw_label": label
+            "result": "malicious" if prediction["label"].lower() == "toxic" else "safe",
+            "confidence": float(prediction["score"])
         })
+
     except Exception as e:
-        print("❌ AI lỗi:", e)
-        return jsonify({"error": "AI model error"}), 500
+        return jsonify({"error": f"Exception: {str(e)}"}), 500
 
 # --- Run local ---
 if __name__ == "__main__":
