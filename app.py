@@ -1,11 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-from transformers import pipeline
-import re
-
-# Load mô hình AI từ HuggingFace
-url_classifier = pipeline("text-classification", model="mrm8488/bert-tiny-finetuned-phishing")
 
 # --- Supabase config ---
 SUPABASE_URL = "https://xbxirbxhahlpzxlcmlnx.supabase.co"
@@ -81,33 +76,6 @@ def check_url():
     return jsonify({"status": "suspicious"})
 
 
-@app.route("/analyze-ai")
-def analyze_ai():
-    url = request.args.get("u", "")
-    if not url:
-        return jsonify({"error": "Thiếu URL"}), 400
-
-    # Làm sạch URL cho model dễ hiểu
-    def preprocess_url(u):
-        u = re.sub(r"https?://", "", u)
-        return u.replace("/", " ").replace(".", " ")
-
-    # Gọi mô hình để phân tích
-    try:
-        result = url_classifier(preprocess_url(url))[0]
-        label = result['label']
-        score = result['score']
-        print("🧠 AI Result:", result)
-
-        is_phishing = label == "LABEL_1"
-        return jsonify({
-            "result": "malicious" if is_phishing else "safe",
-            "confidence": round(score, 2),
-            "raw_label": label
-        })
-    except Exception as e:
-        print("❌ AI Error:", e)
-        return jsonify({"error": "Lỗi AI"}), 500
 
 # --- POST báo cáo người dùng ---
 @app.route('/report', methods=['POST'])
@@ -139,12 +107,43 @@ def manage_urls():
     data = request.get_json()
     success = insert_url(data)
     return jsonify({"success": success})
+    
+from transformers import pipeline
+import re
+
+url_classifier = pipeline("text-classification", model="mrm8488/bert-tiny-finetuned-phishing")
+
+@app.route("/analyze-ai")
+def analyze_ai():
+    url = request.args.get("u", "")
+    if not url:
+        return jsonify({"error": "Thiếu URL"}), 400
+
+    def preprocess_url(u):
+        u = re.sub(r"https?://", "", u)
+        return u.replace("/", " ").replace(".", " ")
+
+    try:
+        result = url_classifier(preprocess_url(url))[0]
+        label = result['label']
+        score = result['score']
+        is_phishing = label == "LABEL_1"
+
+        return jsonify({
+            "result": "malicious" if is_phishing else "safe",
+            "confidence": round(score, 2),
+            "raw_label": label
+        })
+    except Exception as e:
+        print("❌ Lỗi AI:", e)
+        return jsonify({"error": "Lỗi khi phân tích AI"}), 500
 
 # --- Lấy tất cả báo cáo ---
 @app.route("/api/reports", methods=["GET"])
 def get_reports():
     res = requests.get(
         f"{SUPABASE_URL}/rest/v1/reports?select=*",
+        
         headers=SUPABASE_HEADERS
     )
     return jsonify(res.json())
