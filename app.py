@@ -117,7 +117,7 @@ def analyze_ai():
         return jsonify({"error": "Thiếu URL"}), 400
 
     headers = {
-        "Authorization": "Bearer <HUGGINGFACE_TOKEN>",  # Thêm token nếu cần
+        #"Authorization": "Bearer <HUGGINGFACE_TOKEN>",  # Thêm token nếu cần
         "Content-Type": "application/json"
     }
 
