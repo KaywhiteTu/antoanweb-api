@@ -110,38 +110,48 @@ def manage_urls():
     
 import requests
 #AI
-def analyze_with_huggingface(url):
-    API_URL = "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english"
-    payload = {"inputs": url}
+import re
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
 
-    try:
-        response = requests.post(API_URL, json=payload, timeout=10)
-        data = response.json()
-        print("📡 Phản hồi từ model:", data)
+# --- Huấn luyện mô hình đơn giản ---
+urls = [
+    "http://cheap-pills-fake.com",
+    "https://free-money-now.ru",
+    "https://phishing-login-page.com",
+    "https://google.com",
+    "https://openai.com",
+    "https://vnexpress.net"
+]
 
-        if isinstance(data, list) and len(data) > 0:
-            result = data[0]["label"].lower()  # positive / negative
-            score = data[0]["score"]
-            return {
-                "result": "malicious" if result == "negative" else "safe",
-                "confidence": score
-            }
-        else:
-            return {"error": "Invalid model response", "detail": data}
-    except Exception as e:
-        return {"error": "AI model error", "detail": str(e)}
+labels = [1, 1, 1, 0, 0, 0]  # 1 = độc hại (malicious), 0 = an toàn
 
-# --- Route AI ---
+vectorizer = CountVectorizer()
+X_train = vectorizer.fit_transform(urls)
+
+model = MultinomialNB()
+model.fit(X_train, labels)
+
+def analyze_local_ai(url):
+    url_clean = re.sub(r"https?://", "", url)
+    X_test = vectorizer.transform([url_clean])
+    prob = model.predict_proba(X_test)[0]
+    result = model.predict(X_test)[0]
+
+    return {
+        "result": "malicious" if result == 1 else "safe",
+        "confidence": float(max(prob))
+    }
 @app.route("/analyze-ai")
 def analyze_ai():
     url = request.args.get("u", "")
     if not url:
         return jsonify({"error": "Missing URL"}), 400
 
-    print("🔍 Phân tích AI cho URL:", url)
-    result = analyze_with_huggingface(url)
-    print("🧠 Kết quả AI:", result)
+    result = analyze_local_ai(url)
+    print("🧠 Kết quả AI cục bộ:", result)
     return jsonify(result)
+
 
 
 # --- Lấy tất cả báo cáo ---
