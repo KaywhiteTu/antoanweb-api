@@ -148,9 +148,16 @@ def analyze_ai():
     if not url:
         return jsonify({"error": "Missing URL"}), 400
 
-    result = analyze_local_ai(url)
-    print("🧠 Kết quả AI cục bộ:", result)
-    return jsonify(result)
+    try:
+        prediction = model.predict([url])[0]         # 0 = safe, 1 = malicious
+        proba = model.predict_proba([url])[0].max()  # độ tin cậy
+
+        return jsonify({
+            "result": "malicious" if prediction == 1 else "safe",
+            "confidence": round(float(proba), 3)
+        })
+    except Exception as e:
+        return jsonify({"error": "Model error", "detail": str(e)}), 500
 
 
 
