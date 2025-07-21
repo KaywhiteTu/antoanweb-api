@@ -109,33 +109,29 @@ def manage_urls():
     return jsonify({"success": success})
     
 import requests
-
-# --- AI phân tích URL ---
+#AI
 def analyze_with_huggingface(url):
     API_URL = "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english"
     payload = {"inputs": url}
 
     try:
-        response = requests.post(API_URL, json=payload, timeout=15)
+        response = requests.post(API_URL, json=payload, timeout=10)
         data = response.json()
+        print("📡 Phản hồi từ model:", data)
 
-        print("📥 Phản hồi AI:", data)
-
-        if isinstance(data, list):
-            label = data[0]["label"].lower()
+        if isinstance(data, list) and len(data) > 0:
+            result = data[0]["label"].lower()  # positive / negative
             score = data[0]["score"]
-            if label == "negative":
-                return {"result": "malicious", "confidence": score}
-            elif label == "neutral":
-                return {"result": "suspicious", "confidence": score}
-            else:
-                return {"result": "safe", "confidence": score}
+            return {
+                "result": "malicious" if result == "negative" else "safe",
+                "confidence": score
+            }
         else:
-            return {"error": "Invalid model response", "detail": str(data)}
-
+            return {"error": "Invalid model response", "detail": data}
     except Exception as e:
         return {"error": "AI model error", "detail": str(e)}
 
+# --- Route AI ---
 @app.route("/analyze-ai")
 def analyze_ai():
     url = request.args.get("u", "")
@@ -145,9 +141,7 @@ def analyze_ai():
     print("🔍 Phân tích AI cho URL:", url)
     result = analyze_with_huggingface(url)
     print("🧠 Kết quả AI:", result)
-
     return jsonify(result)
-
 
 
 # --- Lấy tất cả báo cáo ---
