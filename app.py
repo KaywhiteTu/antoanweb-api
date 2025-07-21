@@ -181,8 +181,10 @@ def analyze_ai():
     if not url:
         return jsonify({"error": "Thiếu URL"}), 400
 
-    # Dùng mô hình NLI để xác định URL có nguy hiểm không
     model_url = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
+    headers = {
+        "Content-Type": "application/json",
+    }
 
     payload = {
         "inputs": {
@@ -192,22 +194,14 @@ def analyze_ai():
     }
 
     try:
-        response = requests.post(
-            model_url,
-            headers={ "Content-Type": "application/json" },
-            json=payload
-        )
+        response = requests.post(model_url, headers=headers, json=payload)
+        print("📡 Model status:", response.status_code)
+        print("📥 Model raw response:", response.text)
 
         if response.status_code != 200:
-            return jsonify({"error": "AI model error"}), 500
+            return jsonify({"error": "Model not available", "code": response.status_code}), 500
 
         result = response.json()
-        # Ví dụ response:
-        # {
-        #   "labels": ["entailment", "neutral", "contradiction"],
-        #   "scores": [0.91, 0.07, 0.02]
-        # }
-
         label = result["labels"][0]
         confidence = result["scores"][0]
 
@@ -217,7 +211,8 @@ def analyze_ai():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print("❌ Exception:", str(e))
+        return jsonify({"error": "AI model exception", "detail": str(e)}), 500
     
 # --- Lấy tất cả báo cáo ---
 @app.route("/api/reports", methods=["GET"])
