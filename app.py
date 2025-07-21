@@ -108,10 +108,7 @@ def manage_urls():
     success = insert_url(data)
     return jsonify({"success": success})
     
-from transformers import pipeline
-import re
-
-url_classifier = pipeline("text-classification", model="mrm8488/bert-tiny-finetuned-phishing")
+import requests
 
 @app.route("/analyze-ai")
 def analyze_ai():
@@ -119,24 +116,33 @@ def analyze_ai():
     if not url:
         return jsonify({"error": "Thiếu URL"}), 400
 
-    def preprocess_url(u):
-        u = re.sub(r"https?://", "", u)
-        return u.replace("/", " ").replace(".", " ")
+    headers = {
+        "Authorization": "Bearer <HUGGINGFACE_TOKEN>",  # Thêm token nếu cần
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "inputs": url
+    }
+
+    response = requests.post(
+        "https://api-inference.huggingface.co/models/mrm8488/bert-tiny-finetuned-phishing",
+        headers=headers,
+        json=data
+    )
 
     try:
-        result = url_classifier(preprocess_url(url))[0]
-        label = result['label']
-        score = result['score']
-        is_phishing = label == "LABEL_1"
-
+        result = response.json()[0]
+        label = result["label"]
+        score = result["score"]
         return jsonify({
-            "result": "malicious" if is_phishing else "safe",
+            "result": "malicious" if label == "LABEL_1" else "safe",
             "confidence": round(score, 2),
             "raw_label": label
         })
     except Exception as e:
-        print("❌ Lỗi AI:", e)
-        return jsonify({"error": "Lỗi khi phân tích AI"}), 500
+        print("❌ Lỗi khi phân tích AI:", e)
+        return jsonify({"error": "Lỗi khi gọi AI"}), 500
 
 # --- Lấy tất cả báo cáo ---
 @app.route("/api/reports", methods=["GET"])
