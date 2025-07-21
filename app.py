@@ -176,62 +176,33 @@ import requests
 
 # --- AI phân tích URL ---
 import requests
-from flask import request, jsonify
+
+def analyze_with_huggingface(url):
+    API_URL = "https://api-inference.huggingface.co/models/mrm8488/bert-tiny-finetuned-sms-spam-detection"
+    payload = {"inputs": url}
+
+    try:
+        response = requests.post(API_URL, json=payload, timeout=10)
+        data = response.json()
+
+        if isinstance(data, list):
+            label = data[0]["label"].lower()
+            score = data[0]["score"]
+            return {"result": label, "confidence": score}
+        else:
+            return {"error": "Invalid model response", "detail": str(data)}
+    except Exception as e:
+        return {"error": "AI model error", "detail": str(e)}
 
 @app.route("/analyze-ai")
 def analyze_ai():
-    import requests
-    import time
-
     url = request.args.get("u", "")
     if not url:
-        return jsonify({"error": "Thiếu URL"}), 400
+        return jsonify({"error": "Missing URL"}), 400
 
-    prompt = f"This website may be dangerous: {url}. Is it potentially malicious?"
+    result = analyze_with_huggingface(url)
+    return jsonify(result)
 
-    HF_API_URL = "https://api-inference.huggingface.co/models/ynie/roberta-large-snli_mnli_fever_anli_R1_R2_R3-nli"
-
-    try:
-        # Gửi yêu cầu
-        res = requests.post(
-            HF_API_URL,
-            headers={"Content-Type": "application/json"},
-            json={
-                "inputs": {
-                    "premise": prompt,
-                    "hypothesis": "The website is malicious"
-                }
-            },
-            timeout=20
-        )
-
-        # Nếu mô hình đang warm-up
-        if res.status_code == 503:
-            return jsonify({"error": "Model loading, thử lại sau vài giây."}), 503
-
-        # Nếu mô hình trả về không phải JSON (ví dụ lỗi HTML)
-        try:
-            output = res.json()
-        except ValueError:
-            return jsonify({"error": "Phản hồi không hợp lệ từ AI model"}), 500
-
-        if isinstance(output, dict) and "error" in output:
-            return jsonify({"error": "AI model error", "detail": output["error"]}), 500
-
-        # Phân tích nhãn
-        label = output[0]["label"]
-        score = output[0]["score"]
-
-        result = "malicious" if label == "entailment" and score > 0.7 else "safe"
-
-        return jsonify({
-            "result": result,
-            "confidence": round(score, 2),
-            "raw_label": label
-        })
-
-    except Exception as e:
-        return jsonify({"error": "AI model error", "detail": str(e)}), 500
 
 # --- Lấy tất cả báo cáo ---
 @app.route("/api/reports", methods=["GET"])
