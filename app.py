@@ -116,19 +116,10 @@ def analyze_ai():
     if not url:
         return jsonify({"error": "Thiếu URL"}), 400
 
-    headers = {
-        #"Authorization": "Bearer <HUGGINGFACE_TOKEN>",  # Thêm token nếu cần
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "inputs": url
-    }
-
     response = requests.post(
         "https://api-inference.huggingface.co/models/mrm8488/bert-tiny-finetuned-phishing",
-        headers=headers,
-        json=data
+        headers={"Content-Type": "application/json"},  # ❌ KHÔNG dùng Authorization
+        json={"inputs": url}
     )
 
     try:
@@ -141,9 +132,8 @@ def analyze_ai():
             "raw_label": label
         })
     except Exception as e:
-        print("❌ Lỗi khi phân tích AI:", e)
-        return jsonify({"error": "Lỗi khi gọi AI"}), 500
-
+        print("❌ AI lỗi:", e)
+        return jsonify({"error": "Lỗi khi phân tích AI"}), 500
 # --- Lấy tất cả báo cáo ---
 @app.route("/api/reports", methods=["GET"])
 def get_reports():
