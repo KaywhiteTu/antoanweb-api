@@ -181,33 +181,43 @@ def analyze_ai():
     if not url:
         return jsonify({"error": "Thiếu URL"}), 400
 
-    # Demo với model dạng classification
-    model_url = "https://api-inference.huggingface.co/models/mrm8488/toxic-comment-model"
+    # Dùng mô hình NLI để xác định URL có nguy hiểm không
+    model_url = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
+
+    payload = {
+        "inputs": {
+            "hypothesis": "This is a malicious website",
+            "premise": f"The website URL is: {url}"
+        }
+    }
 
     try:
         response = requests.post(
             model_url,
-            headers={
-                "Content-Type": "application/json"
-                # Không dùng Authorization nếu model công khai
-            },
-            json={"inputs": url}
+            headers={ "Content-Type": "application/json" },
+            json=payload
         )
 
         if response.status_code != 200:
             return jsonify({"error": "AI model error"}), 500
 
         result = response.json()
-        # 🧠 Tùy format model, bạn có thể đổi logic này:
-        prediction = result[0][0]  # ví dụ lấy label đầu tiên
+        # Ví dụ response:
+        # {
+        #   "labels": ["entailment", "neutral", "contradiction"],
+        #   "scores": [0.91, 0.07, 0.02]
+        # }
+
+        label = result["labels"][0]
+        confidence = result["scores"][0]
 
         return jsonify({
-            "result": "malicious" if prediction["label"].lower() == "toxic" else "safe",
-            "confidence": float(prediction["score"])
+            "result": "malicious" if label == "entailment" else "safe",
+            "confidence": confidence
         })
 
     except Exception as e:
-        return jsonify({"error": f"Exception: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
     
 # --- Lấy tất cả báo cáo ---
 @app.route("/api/reports", methods=["GET"])
