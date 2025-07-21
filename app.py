@@ -175,44 +175,37 @@ def manage_urls():
 import requests
 
 # --- AI phân tích URL ---
+import requests
+from flask import request, jsonify
+
 @app.route("/analyze-ai")
 def analyze_ai():
     url = request.args.get("u", "")
-    if not url:
-        return jsonify({"error": "Thiếu URL"}), 400
+    prompt = f"This website may be dangerous: {url}. Is it potentially malicious?"
 
-    model_url = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
-    HF_TOKEN = "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"  # ✨ Thay bằng token thật
-    headers = {
-        "Authorization": f"Bearer {HF_TOKEN}",
-        "Content-Type": "application/json",
-    }
-
-    payload = {
-        "inputs": {
-            "hypothesis": "This is a malicious website",
-            "premise": f"The website URL is: {url}"
-        }
-    }
+    HF_API_URL = "https://api-inference.huggingface.co/models/ynie/roberta-large-snli_mnli_fever_anli_R1_R2_R3-nli"
 
     try:
-        response = requests.post(model_url, headers=headers, json=payload)
-        print("📡 Trạng thái model:", response.status_code)
-        print("📥 Phản hồi:", response.text)
+        response = requests.post(
+            HF_API_URL,
+            headers={"Content-Type": "application/json"},
+            json={"inputs": {"premise": prompt, "hypothesis": "The website is malicious"}}
+        )
+        data = response.json()
 
-        if response.status_code != 200:
-            return jsonify({"error": "Model not available"}), 500
+        # Mô hình trả về 3 nhãn: contradiction / entailment / neutral
+        label = data[0]["label"]
+        score = data[0]["score"]
 
-        result = response.json()
-        label = result["labels"][0]
-        confidence = result["scores"][0]
+        result = "malicious" if label == "entailment" and score > 0.7 else "safe"
 
         return jsonify({
-            "result": "malicious" if label == "entailment" else "safe",
-            "confidence": confidence
+            "result": result,
+            "confidence": round(score, 2),
+            "raw_label": label
         })
     except Exception as e:
-        return jsonify({"error": "AI model exception", "detail": str(e)}), 500
+        return jsonify({"error": "AI model error", "detail": str(e)}), 500
 
 # --- Lấy tất cả báo cáo ---
 @app.route("/api/reports", methods=["GET"])
