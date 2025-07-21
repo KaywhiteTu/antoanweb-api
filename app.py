@@ -175,8 +175,6 @@ def manage_urls():
 import requests
 
 # --- AI phân tích URL ---
-import requests
-
 def analyze_with_huggingface(url):
     API_URL = "https://api-inference.huggingface.co/models/mrm8488/bert-tiny-finetuned-sms-spam-detection"
     payload = {"inputs": url}
@@ -186,9 +184,9 @@ def analyze_with_huggingface(url):
         data = response.json()
 
         if isinstance(data, list):
-            label = data[0]["label"].lower()
+            label = data[0]["label"].lower()  # spam hoặc ham
             score = data[0]["score"]
-            return {"result": label, "confidence": score}
+            return {"result": "malicious" if label == "spam" else "safe", "confidence": score}
         else:
             return {"error": "Invalid model response", "detail": str(data)}
     except Exception as e:
@@ -202,6 +200,7 @@ def analyze_ai():
 
     result = analyze_with_huggingface(url)
     return jsonify(result)
+
 
 
 # --- Lấy tất cả báo cáo ---
