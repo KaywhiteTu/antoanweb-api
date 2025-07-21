@@ -175,8 +175,6 @@ def manage_urls():
 import requests
 
 # --- AI phân tích URL ---
-HF_TOKEN = "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"
-
 @app.route("/analyze-ai")
 def analyze_ai():
     url = request.args.get("u", "")
@@ -184,6 +182,7 @@ def analyze_ai():
         return jsonify({"error": "Thiếu URL"}), 400
 
     model_url = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
+    HF_TOKEN = "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"  # ✨ Thay bằng token thật
     headers = {
         "Authorization": f"Bearer {HF_TOKEN}",
         "Content-Type": "application/json",
@@ -198,11 +197,11 @@ def analyze_ai():
 
     try:
         response = requests.post(model_url, headers=headers, json=payload)
-        print("📡 Model status:", response.status_code)
-        print("📥 Model raw response:", response.text)
+        print("📡 Trạng thái model:", response.status_code)
+        print("📥 Phản hồi:", response.text)
 
         if response.status_code != 200:
-            return jsonify({"error": "Model not available", "code": response.status_code}), 500
+            return jsonify({"error": "Model not available"}), 500
 
         result = response.json()
         label = result["labels"][0]
@@ -212,9 +211,7 @@ def analyze_ai():
             "result": "malicious" if label == "entailment" else "safe",
             "confidence": confidence
         })
-
     except Exception as e:
-        print("❌ Exception:", str(e))
         return jsonify({"error": "AI model exception", "detail": str(e)}), 500
 
 # --- Lấy tất cả báo cáo ---
