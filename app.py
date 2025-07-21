@@ -7,7 +7,7 @@ SUPABASE_URL = "https://xbxirbxhahlpzxlcmlnx.supabase.co"
 SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhieGlyYnhoYWhscHp4bGNtbG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMTkzODgsImV4cCI6MjA2ODU5NTM4OH0.vDzpKx4WTYwf66JVXcWe7ZGniLW8oQ19hGhfJeiwI0w"  # Rút gọn
 SUPABASE_HEADERS = {
     "apikey": SUPABASE_API_KEY,
-    
+    "Authorization": f"Bearer {SUPABASE_API_KEY}",
     "Content-Type": "application/json"
 }
 
@@ -112,19 +112,26 @@ import requests
 
 # --- AI phân tích URL ---
 def analyze_with_huggingface(url):
-    API_URL = "https://api-inference.huggingface.co/models/mrm8488/bert-tiny-finetuned-sms-spam-detection"
+    API_URL = "https://api-inference.huggingface.co/models/nlptown/bert-base-multilingual-uncased-sentiment"
     payload = {"inputs": url}
 
     try:
-        response = requests.post(API_URL, json=payload, timeout=10)
+        response = requests.post(API_URL, json=payload, timeout=15)
         data = response.json()
 
+        print("📥 Phản hồi AI:", data)
+
         if isinstance(data, list):
-            label = data[0]["label"].lower()  # spam hoặc ham
-            score = data[0]["score"]
-            return {"result": "malicious" if label == "spam" else "safe", "confidence": score}
+            stars = int(data[0]["label"][0])  # "5 stars" => 5
+            if stars <= 2:
+                return {"result": "malicious", "confidence": stars / 5}
+            elif stars == 3:
+                return {"result": "suspicious", "confidence": 0.5}
+            else:
+                return {"result": "safe", "confidence": stars / 5}
         else:
             return {"error": "Invalid model response", "detail": str(data)}
+
     except Exception as e:
         return {"error": "AI model error", "detail": str(e)}
 
@@ -134,7 +141,10 @@ def analyze_ai():
     if not url:
         return jsonify({"error": "Missing URL"}), 400
 
+    print("🔍 Phân tích AI cho URL:", url)
     result = analyze_with_huggingface(url)
+    print("🧠 Kết quả AI:", result)
+
     return jsonify(result)
 
 
