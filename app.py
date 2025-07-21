@@ -112,7 +112,7 @@ import requests
 
 # --- AI phân tích URL ---
 def analyze_with_huggingface(url):
-    API_URL = "https://api-inference.huggingface.co/models/nlptown/bert-base-multilingual-uncased-sentiment"
+    API_URL = "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english"
     payload = {"inputs": url}
 
     try:
@@ -122,13 +122,14 @@ def analyze_with_huggingface(url):
         print("📥 Phản hồi AI:", data)
 
         if isinstance(data, list):
-            stars = int(data[0]["label"][0])  # "5 stars" => 5
-            if stars <= 2:
-                return {"result": "malicious", "confidence": stars / 5}
-            elif stars == 3:
-                return {"result": "suspicious", "confidence": 0.5}
+            label = data[0]["label"].lower()
+            score = data[0]["score"]
+            if label == "negative":
+                return {"result": "malicious", "confidence": score}
+            elif label == "neutral":
+                return {"result": "suspicious", "confidence": score}
             else:
-                return {"result": "safe", "confidence": stars / 5}
+                return {"result": "safe", "confidence": score}
         else:
             return {"error": "Invalid model response", "detail": str(data)}
 
